@@ -1,61 +1,14 @@
-// Check for microphone permissions and start voice recognition
-let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-recognition.lang = "en-US";
-recognition.continuous = false;
-
-let isListening = false;
-let isTouchDevice = "ontouchstart" in window; // Check if it's a touch device
-
-// Start voice recognition
-recognition.onstart = function () {
-  console.log("Voice recognition started");
-  isListening = true;
-};
-
-// Handle recognized voice input
-recognition.onresult = function (event) {
-  const voiceInput = event.results[0][0].transcript;
-  document.getElementById("user-input").value = voiceInput; // Display recognized text
-  sendMessage();
-};
-
-// Handle errors
-recognition.onerror = function (event) {
-  console.error("Speech recognition error: " + event.error);
-};
-
-// Start and stop voice recognition on mobile or desktop
-function startVoiceRecognition() {
-  if (!isListening) {
-    recognition.start();
-  }
+// Initialize storage and knowledge base
+if (!localStorage.getItem("chatHistory")) {
+  localStorage.setItem("chatHistory", JSON.stringify([]));
+}
+if (!localStorage.getItem("knowledgeBase")) {
+  localStorage.setItem("knowledgeBase", JSON.stringify({}));
 }
 
-function stopVoiceRecognition() {
-  if (isListening) {
-    recognition.stop();
-  }
-}
+const chatbox = document.getElementById("chatbox");
 
-// Event listeners for mic button to work on mobile and desktop
-document.getElementById("mic-button").addEventListener("mousedown", startVoiceRecognition); // For desktop (mouse)
-document.getElementById("mic-button").addEventListener("mouseup", stopVoiceRecognition); // For desktop (mouse)
-
-if (isTouchDevice) {
-  document.getElementById("mic-button").addEventListener("touchstart", startVoiceRecognition); // For mobile (touch start)
-  document.getElementById("mic-button").addEventListener("touchend", stopVoiceRecognition); // For mobile (touch end)
-}
-
-// Voice input processing from the mic button
-document.getElementById("mic-button").addEventListener("click", () => {
-  if (!isListening) {
-    startVoiceRecognition(); // For initial click, start recognition
-  } else {
-    stopVoiceRecognition(); // For further clicks, stop the recognition
-  }
-});
-
-// Send message using the input box
+// Send message from input field
 function sendMessage() {
   const userInput = document.getElementById("user-input").value.trim();
   if (userInput) {
@@ -65,7 +18,55 @@ function sendMessage() {
   }
 }
 
-// Add message to the chatbox
+// Handle chat and knowledge base updates
+function handleChat(message) {
+  let response = generateResponse(message);
+
+  // Store conversation history
+  const chatHistory = JSON.parse(localStorage.getItem("chatHistory"));
+  chatHistory.push({ user: message, bot: response });
+  localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
+
+  // Store learned knowledge
+  storeLearnedKnowledge(message, response);
+
+  // Display bot's response
+  addMessage("Bot", response);
+  speakText(response);
+}
+
+// Generate bot response from knowledge base
+function generateResponse(userInput) {
+  const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
+
+  if (knowledgeBase[userInput.toLowerCase()]) {
+    return knowledgeBase[userInput.toLowerCase()];
+  }
+
+  return " ";
+}
+
+// Store learned knowledge
+function storeLearnedKnowledge(userInput, response) {
+  const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
+
+  if (response.startsWith(" ")) {
+    const teachingResponse = prompt(
+      `I don't know the answer to "${userInput}". Please provide an answer:`
+    );
+
+    if (teachingResponse) {
+      knowledgeBase[userInput.toLowerCase()] = teachingResponse;
+      localStorage.setItem("knowledgeBase", JSON.stringify(knowledgeBase));
+      addMessage(
+        "Bot",
+        `Got it! The answer to "${userInput}" is: "${teachingResponse}".`
+      );
+    }
+  }
+}
+
+// Display messages in the chatbox
 function addMessage(sender, message) {
   const messageElement = document.createElement("div");
   messageElement.classList.add(sender.toLowerCase());
@@ -74,29 +75,61 @@ function addMessage(sender, message) {
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Generate response (simple echo logic for testing)
-function handleChat(message) {
-  const response = "You said: " + message;
-  addMessage("Bot", response);
-  speakText(response);
-}
-
-// Speak out the response text (Text-to-Speech)
+// Text-to-speech function
 function speakText(message) {
   const speech = new SpeechSynthesisUtterance(message);
   speech.lang = "en-US";
   window.speechSynthesis.speak(speech);
 }
 
-// Test functionality to clear chat data (for example purposes)
+// Load chat history from local storage
+function loadChatHistory() {
+  const chatHistory = JSON.parse(localStorage.getItem("chatHistory"));
+  chatHistory.forEach((entry) => {
+    addMessage("You", entry.user);
+    addMessage("Bot", entry.bot);
+  });
+}
+
+// Clear data stored in localStorage
 function clearChatData() {
-  if (confirm("Are you sure you want to clear chat data?")) {
-    chatbox.innerHTML = "";
+  if (
+    confirm(
+      "Are you sure you want to clear all data? This will reset all messages and learned knowledge."
+    )
+  ) {
+    localStorage.removeItem("chatHistory");
+    localStorage.removeItem("knowledgeBase");
+    alert("Data has been cleared.");
+    window.location.reload();
   }
 }
 
-// Debugging: log status of mic usage
-recognition.onend = function() {
-  console.log("Voice recognition ended");
-  isListening = false;
+// Voice recognition for asking questions
+let recognition = new (window.SpeechRecognition ||
+  window.webkitSpeechRecognition)();
+recognition.lang = "en-US";
+recognition.continuous = false;
+
+recognition.onstart = function () {
+  console.log("Voice recognition started");
 };
+
+recognition.onresult = function (event) {
+  const voiceInput = event.results[0][0].transcript;
+  document.getElementById("user-input").value = voiceInput;
+  sendMessage();
+};
+
+recognition.onerror = function (event) {
+  console.error("Speech recognition error: " + event.error);
+};
+
+// Start voice recognition
+function startVoiceRecognition() {
+  recognition.start();
+}
+
+// Load chat history on page load
+window.onload = loadChatHistory;
+//perfect
