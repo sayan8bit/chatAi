@@ -136,9 +136,7 @@ function startVoiceRecognition() {
 document
   .getElementById("mic-button")
   .addEventListener("touchstart", startVoiceRecognition); // For mobile (touch)
-document
-  .getElementById("mic-button")
-  .addEventListener("touchend",recognition.end() ); // For mobile (touch)
+
 
 
 // Load chat history on page load
