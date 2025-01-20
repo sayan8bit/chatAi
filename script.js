@@ -1,135 +1,138 @@
 // Initialize storage and knowledge base
-if (!localStorage.getItem("chatHistory")) {
-  localStorage.setItem("chatHistory", JSON.stringify([]));
-}
-if (!localStorage.getItem("knowledgeBase")) {
-  localStorage.setItem("knowledgeBase", JSON.stringify({}));
-}
+        if (!localStorage.getItem("chatHistory")) {
+          localStorage.setItem("chatHistory", JSON.stringify([]));
+        }
+        if (!localStorage.getItem("knowledgeBase")) {
+          localStorage.setItem("knowledgeBase", JSON.stringify({}));
+        }
 
-const chatbox = document.getElementById("chatbox");
+        const chatbox = document.getElementById("chatbox");
+        const inputBox = document.getElementById("user-input");
 
-// Send message from input field
-function sendMessage() {
-  const userInput = document.getElementById("user-input").value.trim();
-  if (userInput) {
-    addMessage("You", userInput);
-    handleChat(userInput);
-    document.getElementById("user-input").value = "";
-  }
-}
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = "en-US";
+        recognition.continuous = false;
 
-// Handle chat and knowledge base updates
-function handleChat(message) {
-  let response = generateResponse(message);
+        let isListening = false;
 
-  // Store conversation history
-  const chatHistory = JSON.parse(localStorage.getItem("chatHistory"));
-  chatHistory.push({ user: message, bot: response });
-  localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
+        recognition.onstart = function () {
+          console.log("Voice recognition started");
+        };
 
-  // Store learned knowledge
-  storeLearnedKnowledge(message, response);
+        recognition.onresult = function (event) {
+          const voiceInput = event.results[0][0].transcript;
+          inputBox.value = voiceInput;
+          sendMessage();
+        };
 
-  // Display bot's response
-  addMessage("Bot", response);
-  speakText(response);
-}
+        recognition.onerror = function (event) {
+          console.error("Speech recognition error: " + event.error);
+        };
 
-// Generate bot response from knowledge base
-function generateResponse(userInput) {
-  const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
+        // Start voice recognition
+        function startVoiceRecognition() {
+          recognition.start();
+        }
 
-  if (knowledgeBase[userInput.toLowerCase()]) {
-    return knowledgeBase[userInput.toLowerCase()];
-  }
+        // Handle chat and knowledge base updates
+        function handleChat(message) {
+          let response = generateResponse(message);
 
-  return " ";
-}
+          // Store conversation history
+          const chatHistory = JSON.parse(localStorage.getItem("chatHistory"));
+          chatHistory.push({ user: message, bot: response });
+          localStorage.setItem("chatHistory", JSON.stringify(chatHistory));
 
-// Store learned knowledge
-function storeLearnedKnowledge(userInput, response) {
-  const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
+          // Store learned knowledge
+          storeLearnedKnowledge(message, response);
 
-  if (response.startsWith(" ")) {
-    const teachingResponse = prompt(
-      `I don't know the answer to "${userInput}". Please provide an answer:`
-    );
+          // Display bot's response
+          addMessage("Bot", response);
+          speakText(response);
+        }
 
-    if (teachingResponse) {
-      knowledgeBase[userInput.toLowerCase()] = teachingResponse;
-      localStorage.setItem("knowledgeBase", JSON.stringify(knowledgeBase));
-      addMessage(
-        "Bot",
-        `Got it! The answer to "${userInput}" is: "${teachingResponse}".`
-      );
-    }
-  }
-}
+        // Generate bot response from knowledge base
+        function generateResponse(userInput) {
+          const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
+          if (knowledgeBase[userInput.toLowerCase()]) {
+            return knowledgeBase[userInput.toLowerCase()];
+          }
+          return "Sorry, I don't have an answer for that.";
+        }
 
-// Display messages in the chatbox
-function addMessage(sender, message) {
-  const messageElement = document.createElement("div");
-  messageElement.classList.add(sender.toLowerCase());
-  messageElement.innerText = message;
-  chatbox.appendChild(messageElement);
-  chatbox.scrollTop = chatbox.scrollHeight;
-}
+        // Store learned knowledge
+        function storeLearnedKnowledge(userInput, response) {
+          const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
 
-// Text-to-speech function
-function speakText(message) {
-  const speech = new SpeechSynthesisUtterance(message);
-  speech.lang = "en-US";
-  window.speechSynthesis.speak(speech);
-}
+          if (response.startsWith("Sorry")) {
+            const teachingResponse = prompt(
+              `I don't know the answer to "${userInput}". Please provide an answer:`
+            );
+            if (teachingResponse) {
+              knowledgeBase[userInput.toLowerCase()] = teachingResponse;
+              localStorage.setItem("knowledgeBase", JSON.stringify(knowledgeBase));
+              addMessage(
+                "Bot",
+                `Got it! The answer to "${userInput}" is: "${teachingResponse}".`
+              );
+            }
+          }
+        }
 
-// Load chat history from local storage
-function loadChatHistory() {
-  const chatHistory = JSON.parse(localStorage.getItem("chatHistory"));
-  chatHistory.forEach((entry) => {
-    addMessage("You", entry.user);
-    addMessage("Bot", entry.bot);
-  });
-}
+        // Display messages in the chatbox
+        function addMessage(sender, message) {
+          const messageElement = document.createElement("div");
+          messageElement.classList.add(sender.toLowerCase());
+          messageElement.innerText = message;
+          chatbox.appendChild(messageElement);
+          chatbox.scrollTop = chatbox.scrollHeight;
+        }
 
-// Clear data stored in localStorage
-function clearChatData() {
-  if (
-    confirm(
-      "Are you sure you want to clear all data? This will reset all messages and learned knowledge."
-    )
-  ) {
-    localStorage.removeItem("chatHistory");
-    localStorage.removeItem("knowledgeBase");
-    alert("Data has been cleared.");
-    window.location.reload();
-  }
-}
+        // Text-to-speech function
+        function speakText(message) {
+          const speech = new SpeechSynthesisUtterance(message);
+          speech.lang = "en-US";
+          window.speechSynthesis.speak(speech);
+        }
 
-// Voice recognition for asking questions
-let recognition = new (window.SpeechRecognition ||
-  window.webkitSpeechRecognition)();
-recognition.lang = "en-US";
-recognition.continuous = false;
+        // Load chat history from local storage
+        function loadChatHistory() {
+          const chatHistory = JSON.parse(localStorage.getItem("chatHistory"));
+          chatHistory.forEach((entry) => {
+            addMessage("You", entry.user);
+            addMessage("Bot", entry.bot);
+          });
+        }
 
-recognition.onstart = function () {
-  console.log("Voice recognition started");
-};
+        // Clear data stored in localStorage
+        function clearChatData() {
+          if (
+            confirm(
+              "Are you sure you want to clear all data? This will reset all messages and learned knowledge."
+            )
+          ) {
+            localStorage.removeItem("chatHistory");
+            localStorage.removeItem("knowledgeBase");
+            alert("Data has been cleared.");
+            window.location.reload();
+          }
+        }
 
-recognition.onresult = function (event) {
-  const voiceInput = event.results[0][0].transcript;
-  document.getElementById("user-input").value = voiceInput;
-  sendMessage();
-};
+        // Send message from input field
+        function sendMessage() {
+          const userInput = inputBox.value.trim();
+          if (userInput) {
+            addMessage("You", userInput);
+            handleChat(userInput);
+            inputBox.value = "";
+          }
+        }
 
-recognition.onerror = function (event) {
-  console.error("Speech recognition error: " + event.error);
-};
+        // Attach events for mobile and desktop (mousedown and touchstart for starting voice recognition)
+        document.getElementById("mic-button").addEventListener("mousedown", startVoiceRecognition);
+        document.getElementById("mic-button").addEventListener("mouseup", () => recognition.stop());
+        document.getElementById("mic-button").addEventListener("touchstart", startVoiceRecognition);
+        document.getElementById("mic-button").addEventListener("touchend", () => recognition.stop());
 
-// Start voice recognition
-function startVoiceRecognition() {
-  recognition.start();
-}
-
-// Load chat history on page load
-window.onload = loadChatHistory;
-//perfect
+        // Load chat history on page load
+        window.onload = loadChatHistory;
