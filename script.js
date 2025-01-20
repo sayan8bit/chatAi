@@ -43,14 +43,14 @@ function generateResponse(userInput) {
     return knowledgeBase[userInput.toLowerCase()];
   }
 
-  return "I don't know that yet!";
+  return " ";
 }
 
 // Store learned knowledge
 function storeLearnedKnowledge(userInput, response) {
   const knowledgeBase = JSON.parse(localStorage.getItem("knowledgeBase"));
 
-  if (response.startsWith("I don't know that yet")) {
+  if (response.startsWith(" ")) {
     const teachingResponse = prompt(
       `I don't know the answer to "${userInput}". Please provide an answer:`
     );
@@ -125,37 +125,22 @@ recognition.onerror = function (event) {
   console.error("Speech recognition error: " + event.error);
 };
 
-// Handle mic button to start voice recognition on both mobile and desktop
-let isListening = false;
-
+// Start voice recognition
 function startVoiceRecognition() {
-  if (!isListening) {
-    recognition.start();
-    isListening = true;
-  }
+  recognition.start();
 }
 
-function stopVoiceRecognition() {
-  if (isListening) {
-    recognition.stop();
-    isListening = false;
-  }
-}
 
 // Start voice recognition
-document
-  .getElementById("mic-button")
-  .addEventListener("mousedown", startVoiceRecognition); // For desktop (mouse)
-document
-  .getElementById("mic-button")
-  .addEventListener("mouseup", stopVoiceRecognition); // For desktop (mouse)
 
 document
   .getElementById("mic-button")
   .addEventListener("touchstart", startVoiceRecognition); // For mobile (touch)
 document
   .getElementById("mic-button")
-  .addEventListener("touchend", stopVoiceRecognition); // For mobile (touch)
+  .addEventListener("touchend",recognition.end() ); // For mobile (touch)
+
 
 // Load chat history on page load
 window.onload = loadChatHistory;
+//perfect
