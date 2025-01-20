@@ -1,48 +1,61 @@
-// Voice recognition setup
+// Check for microphone permissions and start voice recognition
 let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = "en-US";
 recognition.continuous = false;
 
 let isListening = false;
+let isTouchDevice = "ontouchstart" in window; // Check if it's a touch device
 
+// Start voice recognition
 recognition.onstart = function () {
   console.log("Voice recognition started");
+  isListening = true;
 };
 
+// Handle recognized voice input
 recognition.onresult = function (event) {
   const voiceInput = event.results[0][0].transcript;
-  document.getElementById("user-input").value = voiceInput;
-  sendMessage(); // Send the recognized input as a message
+  document.getElementById("user-input").value = voiceInput; // Display recognized text
+  sendMessage();
 };
 
+// Handle errors
 recognition.onerror = function (event) {
   console.error("Speech recognition error: " + event.error);
 };
 
-// Function to start voice recognition
+// Start and stop voice recognition on mobile or desktop
 function startVoiceRecognition() {
   if (!isListening) {
     recognition.start();
-    isListening = true;
   }
 }
 
-// Function to stop voice recognition
 function stopVoiceRecognition() {
   if (isListening) {
     recognition.stop();
-    isListening = false;
   }
 }
 
-// Handle the mic button on both desktop and mobile
+// Event listeners for mic button to work on mobile and desktop
 document.getElementById("mic-button").addEventListener("mousedown", startVoiceRecognition); // For desktop (mouse)
 document.getElementById("mic-button").addEventListener("mouseup", stopVoiceRecognition); // For desktop (mouse)
 
-document.getElementById("mic-button").addEventListener("touchstart", startVoiceRecognition); // For mobile (touch)
-document.getElementById("mic-button").addEventListener("touchend", stopVoiceRecognition); // For mobile (touch)
+if (isTouchDevice) {
+  document.getElementById("mic-button").addEventListener("touchstart", startVoiceRecognition); // For mobile (touch start)
+  document.getElementById("mic-button").addEventListener("touchend", stopVoiceRecognition); // For mobile (touch end)
+}
 
-// Handle the chat functionality
+// Voice input processing from the mic button
+document.getElementById("mic-button").addEventListener("click", () => {
+  if (!isListening) {
+    startVoiceRecognition(); // For initial click, start recognition
+  } else {
+    stopVoiceRecognition(); // For further clicks, stop the recognition
+  }
+});
+
+// Send message using the input box
 function sendMessage() {
   const userInput = document.getElementById("user-input").value.trim();
   if (userInput) {
@@ -52,6 +65,7 @@ function sendMessage() {
   }
 }
 
+// Add message to the chatbox
 function addMessage(sender, message) {
   const messageElement = document.createElement("div");
   messageElement.classList.add(sender.toLowerCase());
@@ -60,25 +74,29 @@ function addMessage(sender, message) {
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
+// Generate response (simple echo logic for testing)
 function handleChat(message) {
-  const response = generateResponse(message);
+  const response = "You said: " + message;
   addMessage("Bot", response);
   speakText(response);
 }
 
-function generateResponse(userInput) {
-  return "Your message: " + userInput; // For demonstration purposes
-}
-
+// Speak out the response text (Text-to-Speech)
 function speakText(message) {
   const speech = new SpeechSynthesisUtterance(message);
   speech.lang = "en-US";
   window.speechSynthesis.speak(speech);
 }
 
-// Clear chat history (for testing)
+// Test functionality to clear chat data (for example purposes)
 function clearChatData() {
-  if (confirm("Are you sure you want to clear all chat data?")) {
+  if (confirm("Are you sure you want to clear chat data?")) {
     chatbox.innerHTML = "";
   }
 }
+
+// Debugging: log status of mic usage
+recognition.onend = function() {
+  console.log("Voice recognition ended");
+  isListening = false;
+};
