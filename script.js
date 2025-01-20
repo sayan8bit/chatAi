@@ -132,3 +132,4 @@ function startVoiceRecognition() {
 
 // Load chat history on page load
 window.onload = loadChatHistory;
+//perfect
